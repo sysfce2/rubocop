@@ -50,6 +50,26 @@ RSpec.shared_context 'isolated environment' do # rubocop:disable Metrics/BlockLe
   end
 end
 
+# Workaround for https://github.com/rubocop/rubocop/issues/12978,
+# there should already be no gemfile in the temp directory
+RSpec.shared_context 'isolated bundler' do
+  around do |example|
+    # No bundler env and reset cached gemfile path
+    Bundler.with_unbundled_env do
+      old_values = Bundler.instance_variables.to_h do |name|
+        [name, Bundler.instance_variable_get(name)]
+      end
+      Bundler.instance_variables.each { |name| Bundler.remove_instance_variable(name) }
+      example.call
+    ensure
+      Bundler.instance_variables.each { |name| Bundler.remove_instance_variable(name) }
+      old_values.each do |name, value|
+        Bundler.instance_variable_set(name, value)
+      end
+    end
+  end
+end
+
 RSpec.shared_context 'maintain registry' do
   around(:each) { |example| RuboCop::Cop::Registry.with_temporary_global { example.run } }
 
@@ -110,7 +130,19 @@ RSpec.shared_context 'config' do # rubocop:disable Metrics/BlockLength
   let(:config) do
     hash = { 'AllCops' => all_cops_config, cop_class.cop_name => cur_cop_config }.merge!(other_cops)
 
-    RuboCop::Config.new(hash, "#{Dir.pwd}/.rubocop.yml")
+    config = RuboCop::Config.new(hash, "#{Dir.pwd}/.rubocop.yml")
+
+    rails_version_in_gemfile = Gem::Version.new(
+      rails_version || RuboCop::Config::DEFAULT_RAILS_VERSION
+    )
+
+    allow(config).to receive(:gem_versions_in_target).and_return(
+      {
+        'railties' => rails_version_in_gemfile
+      }
+    )
+
+    config
   end
 
   let(:cop) { cop_class.new(config, cop_options) }

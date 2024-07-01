@@ -60,16 +60,20 @@ module RuboCop
         []
       end
 
-      # Cops (other than builtin) are encouraged to implement this
+      # Returns an url to view this cops documentation online.
+      # Requires 'DocumentationBaseURL' to be set for your department.
+      # Will follow the convention of RuboCops own documentation structure,
+      # overwrite this method to accommodate your custom layout.
       # @return [String, nil]
       #
       # @api public
-      def self.documentation_url
-        Documentation.url_for(self) if builtin?
+      def self.documentation_url(config = nil)
+        Documentation.url_for(self, config)
       end
 
       def self.inherited(subclass)
         super
+        subclass.instance_variable_set(:@gem_requirements, gem_requirements.dup)
         Registry.global.enlist(subclass)
       end
 
@@ -126,6 +130,29 @@ module RuboCop
         false
       end
 
+      ## Gem requirements
+
+      @gem_requirements = {}
+
+      class << self
+        attr_reader :gem_requirements
+
+        # Register a version requirement for the given gem name.
+        # This cop will be skipped unless the target satisfies *all* requirements.
+        # @param [String] gem_name
+        # @param [Array<String>] version_requirements The version requirements,
+        #   using the same syntax as a Gemfile, e.g. ">= 1.2.3"
+        #
+        #   If omitted, any version of the gem will be accepted.
+        #
+        #   https://guides.rubygems.org/patterns/#declaring-dependencies
+        #
+        # @api public
+        def requires_gem(gem_name, *version_requirements)
+          @gem_requirements[gem_name] = Gem::Requirement.new(version_requirements)
+        end
+      end
+
       def initialize(config = nil, options = nil)
         @config = config || Config.new
         @options = options || { debug: false }
@@ -162,7 +189,9 @@ module RuboCop
       def add_global_offense(message = nil, severity: nil)
         severity = find_severity(nil, severity)
         message = find_message(nil, message)
-        current_offenses << Offense.new(severity, Offense::NO_LOCATION, message, name, :unsupported)
+        range = Offense::NO_LOCATION
+        status = enabled_line?(range.line) ? :unsupported : :disabled
+        current_offenses << Offense.new(severity, range, message, name, status)
       end
 
       # Adds an offense on the specified range (or node with an expression)
@@ -245,6 +274,7 @@ module RuboCop
       end
 
       def relevant_file?(file)
+        return false unless target_satisfies_all_gem_version_requirements?
         return true unless @config.clusivity_config_for_badge?(self.class.badge)
 
         file == RuboCop::AST::ProcessedSource::STRING_SOURCE_NAME ||
@@ -371,16 +401,6 @@ module RuboCop
 
       ### Actually private methods
 
-      # rubocop:disable Layout/ClassStructure
-      def self.builtin?
-        return false unless (m = instance_methods(false).first) # any custom method will do
-
-        path, _line = instance_method(m).source_location
-        path.start_with?(__dir__)
-      end
-      private_class_method :builtin?
-      # rubocop:enable Layout/ClassStructure
-
       def reset_investigation
         @currently_disabled_lines = @current_offenses = @processed_source = @current_corrector = nil
       end
@@ -495,6 +515,18 @@ module RuboCop
           range.begin_pos + @current_offset,
           range.end_pos + @current_offset
         )
+      end
+
+      def target_satisfies_all_gem_version_requirements?
+        self.class.gem_requirements.all? do |gem_name, version_req|
+          all_gem_versions_in_target = @config.gem_versions_in_target
+          next false unless all_gem_versions_in_target
+
+          gem_version_in_target = all_gem_versions_in_target[gem_name]
+          next false unless gem_version_in_target
+
+          version_req.satisfied_by?(gem_version_in_target)
+        end
       end
     end
   end

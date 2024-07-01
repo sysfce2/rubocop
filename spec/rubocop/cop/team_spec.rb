@@ -102,7 +102,7 @@ RSpec.describe RuboCop::Cop::Team do
     before { create_file(file_path, ['#' * 90, 'puts test;']) }
 
     it 'returns offenses' do
-      expect(offenses.empty?).to be(false)
+      expect(offenses).not_to be_empty
       expect(offenses).to all(be_a(RuboCop::Cop::Offense))
     end
 
@@ -111,23 +111,21 @@ RSpec.describe RuboCop::Cop::Team do
 
       let(:cop_names) { offenses.map(&:cop_name) }
 
-      # FIXME: https://github.com/ruby/prism/issues/2513
-      it 'returns Parser warning offenses', broken_on: :prism do
-        expect(cop_names.include?('Lint/AmbiguousOperator')).to be(true)
+      it 'returns Parser warning offenses' do
+        expect(cop_names).to include('Lint/AmbiguousOperator')
       end
 
       it 'returns offenses from cops' do
-        expect(cop_names.include?('Layout/LineLength')).to be(true)
+        expect(cop_names).to include('Layout/LineLength')
       end
 
       context 'when a cop has no interest in the file' do
-        # FIXME: https://github.com/ruby/prism/issues/2513
-        it 'returns all offenses except the ones of the cop', broken_on: :prism do
+        it 'returns all offenses except the ones of the cop' do
           allow_any_instance_of(RuboCop::Cop::Layout::LineLength)
             .to receive(:excluded_file?).and_return(true)
 
-          expect(cop_names.include?('Lint/AmbiguousOperator')).to be(true)
-          expect(cop_names.include?('Layout/LineLength')).to be(false)
+          expect(cop_names).to include('Lint/AmbiguousOperator')
+          expect(cop_names).not_to include('Layout/LineLength')
         end
       end
     end
@@ -164,7 +162,7 @@ RSpec.describe RuboCop::Cop::Team do
       it 'no error occurs' do
         team.inspect_file(source)
 
-        expect(team.errors.empty?).to be(true)
+        expect(team.errors).to be_empty
       end
     end
 
@@ -186,7 +184,31 @@ RSpec.describe RuboCop::Cop::Team do
         team.inspect_file(source)
 
         expect(team.errors).to eq([error_message])
-        expect($stderr.string.include?(error_message)).to be(true)
+        expect($stderr.string).to include(error_message)
+      end
+    end
+
+    context 'when a cops joining forces callback raises an error' do
+      include_context 'mock console output'
+      before do
+        allow_any_instance_of(RuboCop::Cop::Lint::ShadowedArgument)
+          .to receive(:after_leaving_scope).and_raise(exception_message)
+
+        create_file(file_path, 'foo { |bar| bar = 42 }')
+      end
+
+      let(:options) { { debug: true } }
+      let(:exception_message) { 'my message' }
+      let(:error_message) do
+        'An error occurred while Lint/ShadowedArgument cop was inspecting example.rb.'
+      end
+
+      it 'records Team#errors' do
+        team.inspect_file(source)
+
+        expect(team.errors).to eq([error_message])
+        expect($stderr.string).to include(error_message)
+        expect($stdout.string).to include(exception_message)
       end
     end
 
@@ -216,7 +238,7 @@ RSpec.describe RuboCop::Cop::Team do
 
       it 'records Team#errors' do
         team.inspect_file(source)
-        expect($stderr.string.include?(error_message)).to be(true)
+        expect($stderr.string).to include(error_message)
       end
     end
 
@@ -244,8 +266,8 @@ RSpec.describe RuboCop::Cop::Team do
     subject(:cops) { team.cops }
 
     it 'returns cop instances' do
-      expect(cops.empty?).to be(false)
-      expect(cops.all?(RuboCop::Cop::Base)).to be_truthy
+      expect(cops).not_to be_empty
+      expect(cops).to be_all(RuboCop::Cop::Base)
     end
 
     context 'when only some cop classes are passed to .new' do
@@ -268,9 +290,9 @@ RSpec.describe RuboCop::Cop::Team do
     let(:cop_classes) { RuboCop::Cop::Registry.global }
 
     it 'returns force instances' do
-      expect(forces.empty?).to be(false)
+      expect(forces).not_to be_empty
 
-      forces.each { |force| expect(force.is_a?(RuboCop::Cop::Force)).to be(true) }
+      expect(forces).to all(be_a(RuboCop::Cop::Force))
     end
 
     context 'when a cop joined a force' do
@@ -278,7 +300,7 @@ RSpec.describe RuboCop::Cop::Team do
 
       it 'returns the force' do
         expect(forces.size).to eq(1)
-        expect(forces.first.is_a?(RuboCop::Cop::VariableForce)).to be(true)
+        expect(forces.first).to be_a(RuboCop::Cop::VariableForce)
       end
     end
 
@@ -301,7 +323,7 @@ RSpec.describe RuboCop::Cop::Team do
       let(:cop_classes) { RuboCop::Cop::Registry.new([RuboCop::Cop::Style::For]) }
 
       it 'returns nothing' do
-        expect(forces.empty?).to be(true)
+        expect(forces).to be_empty
       end
     end
   end
@@ -310,14 +332,14 @@ RSpec.describe RuboCop::Cop::Team do
     let(:cop_classes) { RuboCop::Cop::Registry.new }
 
     it 'does not error with no cops' do
-      expect(team.external_dependency_checksum.is_a?(String)).to be(true)
+      expect(team.external_dependency_checksum).to be_a(String)
     end
 
     context 'when a cop joins' do
       let(:cop_classes) { RuboCop::Cop::Registry.new([RuboCop::Cop::Lint::UselessAssignment]) }
 
       it 'returns string' do
-        expect(team.external_dependency_checksum.is_a?(String)).to be(true)
+        expect(team.external_dependency_checksum).to be_a(String)
       end
     end
 
@@ -332,7 +354,7 @@ RSpec.describe RuboCop::Cop::Team do
       end
 
       it 'returns string' do
-        expect(team.external_dependency_checksum.is_a?(String)).to be(true)
+        expect(team.external_dependency_checksum).to be_a(String)
       end
     end
 

@@ -178,7 +178,7 @@ RSpec.describe RuboCop::Cop::Layout::HashAlignment, :config do
   context 'when `EnforcedStyle: with_fixed_indentation` of `ArgumentAlignment`' do
     let(:argument_alignment_config) { { 'EnforcedStyle' => 'with_fixed_indentation' } }
 
-    it 'register and corrects an offense' do
+    it 'registers and corrects an offense' do
       expect_offense(<<~RUBY)
         THINGS = {
           oh: :io,
@@ -219,7 +219,7 @@ RSpec.describe RuboCop::Cop::Layout::HashAlignment, :config do
     end
 
     context 'when using hash value omission', :ruby31 do
-      it 'register and corrects an offense' do
+      it 'registers and corrects an offense' do
         expect_offense(<<~RUBY)
           THINGS = {
             oh:,
@@ -1351,7 +1351,7 @@ RSpec.describe RuboCop::Cop::Layout::HashAlignment, :config do
 
     context 'when using hash value omission', :ruby31 do
       context 'and aligned keys' do
-        it 'does not register an offense and corrects' do
+        it 'does not register an offense' do
           expect_no_offenses(<<~RUBY)
             foo ab: 1,
                 c:

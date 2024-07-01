@@ -103,6 +103,7 @@ RSpec.describe RuboCop::Cop::Style::OneLineConditional, :config do
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'puts 1'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'defined? :A'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'yield a'
+
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'super b'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'not a'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'a and b'
@@ -160,8 +161,12 @@ RSpec.describe RuboCop::Cop::Style::OneLineConditional, :config do
       end
     end
 
-    it_behaves_like 'if/then/else/end with keyword', 'retry'
+    context 'Ruby <= 3.2', :ruby32, unsupported_on: :prism do
+      it_behaves_like 'if/then/else/end with keyword', 'retry'
+    end
+
     it_behaves_like 'if/then/else/end with keyword', 'break'
+
     it_behaves_like 'if/then/else/end with keyword', 'self'
     it_behaves_like 'if/then/else/end with keyword', 'raise'
 
@@ -334,7 +339,9 @@ RSpec.describe RuboCop::Cop::Style::OneLineConditional, :config do
 
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'puts 1'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'defined? :A'
+
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'yield a'
+
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'super b'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'not a'
     it_behaves_like 'if/then/else/end with constructs changing precedence', 'a and b'
@@ -408,8 +415,12 @@ RSpec.describe RuboCop::Cop::Style::OneLineConditional, :config do
       end
     end
 
-    it_behaves_like 'if/then/else/end with keyword', 'retry'
+    context 'Ruby <= 3.2', :ruby32, unsupported_on: :prism do
+      it_behaves_like 'if/then/else/end with keyword', 'retry'
+    end
+
     it_behaves_like 'if/then/else/end with keyword', 'break'
+
     it_behaves_like 'if/then/else/end with keyword', 'self'
     it_behaves_like 'if/then/else/end with keyword', 'raise'
 

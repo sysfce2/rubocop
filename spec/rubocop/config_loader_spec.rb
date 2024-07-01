@@ -360,8 +360,8 @@ RSpec.describe RuboCop::ConfigLoader do
 
         configuration = config_loader.configuration_from_file(sub_file_path)
         excludes = configuration['AllCops']['Exclude']
-        expect(excludes.include?(File.expand_path('vendor/**'))).to be(false)
-        expect(excludes.include?(File.expand_path('vendor/foo'))).to be(true)
+        expect(excludes).not_to include(File.expand_path('vendor/**'))
+        expect(excludes).to include(File.expand_path('vendor/foo'))
       end
     end
 
@@ -1013,7 +1013,7 @@ RSpec.describe RuboCop::ConfigLoader do
               'AllowedPatterns' => []
             }
           )
-        expect { expect(configuration_from_file.to_h).to eq(config) }.to output('').to_stderr
+        expect { expect(configuration_from_file.to_h).to eq(config) }.not_to output.to_stderr
       end
     end
 
@@ -1052,7 +1052,7 @@ RSpec.describe RuboCop::ConfigLoader do
                      'Max' => 200 }            # special.yml takes precedence
         expect do
           expect(configuration_from_file['Metrics/MethodLength']
-                   .to_set.superset?(expected.to_set)).to be(true)
+                   .to_set).to be_superset(expected.to_set)
         end.to output(Regexp.new(<<~OUTPUT)).to_stdout
           .rubocop.yml: Metrics/MethodLength:Enabled overrides the same parameter in special.yml
           .rubocop.yml: Metrics/MethodLength:Enabled overrides the same parameter in normal.yml
@@ -1209,8 +1209,8 @@ RSpec.describe RuboCop::ConfigLoader do
                        'Max' => 200 }            # inherited from somegem
           expect do
             expect(configuration_from_file['Metrics/MethodLength']
-                    .to_set.superset?(expected.to_set)).to be(true)
-          end.to output('').to_stderr
+                    .to_set).to be_superset(expected.to_set)
+          end.not_to output.to_stderr
 
           expected = { 'Enabled' => true, # gemtwo/config/default.yml
                        'Max' => 72,              # gemtwo/config/strict.yml
@@ -1218,8 +1218,27 @@ RSpec.describe RuboCop::ConfigLoader do
                        'AllowURI' => false }     # overridden in .rubocop.yml
           expect(
             configuration_from_file['Layout/LineLength']
-              .to_set.superset?(expected.to_set)
-          ).to be(true)
+              .to_set
+          ).to be_superset(expected.to_set)
+        end
+
+        context 'bundler isolated', :isolated_bundler do
+          it 'loads' do
+            expect { configuration_from_file }.not_to raise_error
+          end
+
+          context 'when the gemfile contains an uninstalled git source' do
+            before do
+              create_file('Gemfile', <<~GEMFILE)
+                gem 'rubocop', github: 'rubocop/rubocop'
+                gem 'some_other_gem'
+              GEMFILE
+            end
+
+            it 'loads' do
+              expect { configuration_from_file }.not_to raise_error
+            end
+          end
         end
       end
 
@@ -1245,8 +1264,8 @@ RSpec.describe RuboCop::ConfigLoader do
                        'Max' => 200 }            # inherited from somegem
           expect do
             expect(configuration_from_file['Metrics/MethodLength']
-                    .to_set.superset?(expected.to_set)).to be(true)
-          end.to output('').to_stderr
+                    .to_set).to be_superset(expected.to_set)
+          end.not_to output.to_stderr
 
           expected = { 'Enabled' => true, # gemtwo/config/default.yml
                        'Max' => 72,              # gemtwo/config/strict.yml
@@ -1254,8 +1273,8 @@ RSpec.describe RuboCop::ConfigLoader do
                        'AllowURI' => false }     # overridden in .rubocop.yml
           expect(
             configuration_from_file['Layout/LineLength']
-              .to_set.superset?(expected.to_set)
-          ).to be(true)
+              .to_set
+          ).to be_superset(expected.to_set)
         end
       end
     end
@@ -1314,8 +1333,8 @@ RSpec.describe RuboCop::ConfigLoader do
       end
 
       it 'creates the cached file alongside the owning file' do
-        expect { configuration_from_file }.to output('').to_stderr
-        expect(File.exist?(cache_file)).to be true
+        expect { configuration_from_file }.not_to output.to_stderr
+        expect(File).to exist(cache_file)
       end
     end
 
@@ -1342,8 +1361,8 @@ RSpec.describe RuboCop::ConfigLoader do
 
       it 'downloads the inherited file from the same url and caches it' do
         configuration_from_file
-        expect(File.exist?(cache_file)).to be true
-        expect(File.exist?(cache_file2)).to be true
+        expect(File).to exist(cache_file)
+        expect(File).to exist(cache_file2)
       end
     end
 

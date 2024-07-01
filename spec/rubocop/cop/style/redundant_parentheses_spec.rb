@@ -54,7 +54,11 @@ RSpec.describe RuboCop::Cop::Style::RedundantParentheses, :config do
   it_behaves_like 'redundant', '(__LINE__)', '__LINE__', 'a keyword'
   it_behaves_like 'redundant', '(__ENCODING__)', '__ENCODING__', 'a keyword'
   it_behaves_like 'redundant', '(redo)', 'redo', 'a keyword'
-  it_behaves_like 'redundant', '(retry)', 'retry', 'a keyword'
+
+  context 'Ruby <= 3.2', :ruby32, unsupported_on: :prism do
+    it_behaves_like 'redundant', '(retry)', 'retry', 'a keyword'
+  end
+
   it_behaves_like 'redundant', '(self)', 'self', 'a keyword'
 
   context 'ternaries' do
@@ -120,10 +124,11 @@ RSpec.describe RuboCop::Cop::Style::RedundantParentheses, :config do
 
   it_behaves_like 'keyword with return value', 'break'
   it_behaves_like 'keyword with return value', 'next'
+  it_behaves_like 'keyword with arguments', 'yield'
+
   it_behaves_like 'keyword with return value', 'return'
 
   it_behaves_like 'keyword with arguments', 'super'
-  it_behaves_like 'keyword with arguments', 'yield'
 
   it_behaves_like 'redundant', '(defined?(:A))', 'defined?(:A)', 'a keyword'
   it_behaves_like 'plausible', '(defined? :A)'
@@ -905,12 +910,11 @@ RSpec.describe RuboCop::Cop::Style::RedundantParentheses, :config do
 
   context 'pin operator', :ruby31 do
     shared_examples 'redundant parentheses' do |variable, description|
-      # FIXME: https://github.com/ruby/prism/issues/2499
-      it "registers an offense and corrects #{description}", broken_on: :prism do
+      it "registers an offense and corrects #{description}" do
         expect_offense(<<~RUBY, variable: variable)
           var = 0
           foo in { bar: ^(%{variable}) }
-                         ^^{variable}^ Don\x27t use parentheses around a variable.
+                         ^^{variable}^ Don't use parentheses around a variable.
         RUBY
 
         expect_correction(<<~RUBY)

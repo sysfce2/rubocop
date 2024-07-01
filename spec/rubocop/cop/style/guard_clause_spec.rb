@@ -460,8 +460,7 @@ RSpec.describe RuboCop::Cop::Style::GuardClause, :config do
     RUBY
   end
 
-  # FIXME: https://github.com/ruby/prism/issues/2498
-  it 'registers an offense when using xstr heredoc as an argument of raise in `else` branch', broken_on: :prism do
+  it 'registers an offense when using xstr heredoc as an argument of raise in `else` branch' do
     expect_offense(<<~RUBY)
       def func
         unless condition

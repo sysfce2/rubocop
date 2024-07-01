@@ -875,7 +875,7 @@ RSpec.describe 'RuboCop::CLI --autocorrect', :isolated_environment do # rubocop:
     expect(
       cli.run(['-a', '--only', 'Layout/SpaceAroundKeyword,Layout/SpaceInsideRangeLiteral'])
     ).to eq(0)
-    expect($stdout.string.include?('no offenses detected')).to be(true)
+    expect($stdout.string).to include('no offenses detected')
     expect(File.read('example.rb')).to eq(source)
   end
 
@@ -1363,7 +1363,7 @@ RSpec.describe 'RuboCop::CLI --autocorrect', :isolated_environment do # rubocop:
     uncorrected = $stdout.string.split($RS).select do |line|
       line.include?('example.rb:') && !line.include?('[Corrected]')
     end
-    expect(uncorrected.empty?).to be(true) # Hence exit code 0.
+    expect(uncorrected).to be_empty # Hence exit code 0.
   end
 
   it 'corrects only IndentationWidth without crashing' do
@@ -1401,7 +1401,7 @@ RSpec.describe 'RuboCop::CLI --autocorrect', :isolated_environment do # rubocop:
         Enabled: false
     YAML
     expect(cli.run(['--autocorrect-all'])).to eq(0)
-    expect($stdout.string.include?('no offenses detected')).to be(true)
+    expect($stdout.string).to include('no offenses detected')
     expect(File.read('example.rb')).to eq("#{source}\n")
   end
 
@@ -1590,7 +1590,7 @@ RSpec.describe 'RuboCop::CLI --autocorrect', :isolated_environment do # rubocop:
     uncorrected = $stdout.string.split($RS).select do |line|
       line.include?('example.rb:') && !line.include?('[Corrected]')
     end
-    expect(uncorrected.empty?).to be(false) # Hence exit code 1.
+    expect(uncorrected).not_to be_empty # Hence exit code 1.
   end
 
   it 'can correct single line methods' do
@@ -2475,6 +2475,36 @@ RSpec.describe 'RuboCop::CLI --autocorrect', :isolated_environment do # rubocop:
         'foo',
         'bar'
       ])
+    RUBY
+  end
+
+  it 'corrects the indentation of array elements when specifying `EnforcedStyle: with_fixed_indentation` of ' \
+     '`Layout/ArrayAlignment` and `Layout/FirstArrayElementIndentation`' do
+    create_file('example.rb', <<~RUBY)
+      foo bar: [
+            'foo',
+            'bar'
+      ],
+      baz: 'baz'
+    RUBY
+
+    create_file('.rubocop.yml', <<~YAML)
+      Layout/ArrayAlignment:
+        EnforcedStyle: with_fixed_indentation
+    YAML
+
+    expect(
+      cli.run(
+        ['--autocorrect', '--only', 'Layout/ArrayAlignment,Layout/FirstArrayElementIndentation']
+      )
+    ).to eq(0)
+    expect($stderr.string).to eq('')
+    expect(File.read('example.rb')).to eq(<<~RUBY)
+      foo bar: [
+        'foo',
+        'bar'
+      ],
+      baz: 'baz'
     RUBY
   end
 

@@ -42,7 +42,7 @@ RSpec.describe 'RuboCop Project', type: :feature do
         description = config.dig(name, 'Description')
         expect(description.nil?).to(be(false),
                                     "`Description` configuration is required for `#{name}`.")
-        expect(description.include?("\n")).to be(false)
+        expect(description).not_to include("\n")
 
         start_with_subject = description.match(/\AThis cop (?<verb>.+?) .*/)
         suggestion = start_with_subject[:verb]&.capitalize if start_with_subject
@@ -194,7 +194,7 @@ RSpec.describe 'RuboCop Project', type: :feature do
     let(:non_reference_lines) { lines.take_while { |line| !line.start_with?('[@') } }
 
     it 'has newline at end of file' do
-      expect(changelog.end_with?("\n")).to be true
+      expect(changelog).to end_with("\n")
     end
 
     it 'has either entries, headers, empty lines, or comments' do
@@ -224,7 +224,7 @@ RSpec.describe 'RuboCop Project', type: :feature do
         end
 
         it 'has a reference' do
-          issues.each { |issue| expect(issue[:ref].blank?).to be(false) }
+          issues.each { |issue| expect(issue[:ref]).not_to be_blank }
         end
 
         it 'has a valid issue number prefixed with #' do
@@ -306,7 +306,7 @@ RSpec.describe 'RuboCop Project', type: :feature do
       dir = File.expand_path('../changelog', __dir__)
 
       it 'does not have a directory' do
-        expect(Dir["#{dir}/*"].none? { |path| File.directory?(path) }).to be(true)
+        expect(Dir["#{dir}/*"]).to be_none { |path| File.directory?(path) }
       end
 
       Dir["#{dir}/*.md"].each do |path|
@@ -337,10 +337,22 @@ RSpec.describe 'RuboCop Project', type: :feature do
           it 'has valid cop name with backticks', :aggregate_failures do
             entries.each do |entry|
               entry.scan(%r{\b[A-Z]\w+(?:/[A-Z]\w+)+\b}) do |cop_name|
+                next if cop_name.split('/').first == 'AllCops'
+
                 expect(allowed_cop_names.include?(cop_name))
                   .to be(true), "Invalid cop name #{cop_name}."
                 expect(entry.include?("`#{cop_name}`"))
                   .to be(true), "Missing backticks for #{cop_name}."
+              end
+            end
+          end
+
+          it 'has cops in backticks with department', :aggregate_failures do
+            cop_names_without_department = allowed_cop_names.map { |name| name.split('/').last }
+            entries.each do |entry|
+              entry.scan(/`([A-Z]\w+)`/) do |cop_name, *|
+                expect(cop_names_without_department.include?(cop_name))
+                  .to be(false), "Missing department for #{cop_name}."
               end
             end
           end

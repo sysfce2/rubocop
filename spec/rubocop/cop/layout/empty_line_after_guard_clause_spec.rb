@@ -25,22 +25,24 @@ RSpec.describe RuboCop::Cop::Layout::EmptyLineAfterGuardClause, :config do
     RUBY
   end
 
-  it 'registers an offense and corrects `next` guard clause not followed by empty line' do
-    expect_offense(<<~RUBY)
-      def foo
-        next unless need_next? # comment
-        ^^^^^^^^^^^^^^^^^^^^^^ Add empty line after guard clause.
-        foobar
-      end
-    RUBY
+  context 'Ruby <= 3.2', :ruby32 do
+    it 'registers an offense and corrects `next` guard clause not followed by empty line' do
+      expect_offense(<<~RUBY)
+        def foo
+          next unless need_next? # comment
+          ^^^^^^^^^^^^^^^^^^^^^^ Add empty line after guard clause.
+          foobar
+        end
+      RUBY
 
-    expect_correction(<<~RUBY)
-      def foo
-        next unless need_next? # comment
+      expect_correction(<<~RUBY)
+        def foo
+          next unless need_next? # comment
 
-        foobar
-      end
-    RUBY
+          foobar
+        end
+      RUBY
+    end
   end
 
   it 'registers an offense and corrects a guard clause is before `begin`' do
@@ -116,8 +118,7 @@ RSpec.describe RuboCop::Cop::Layout::EmptyLineAfterGuardClause, :config do
   end
 
   it 'registers an offense and corrects a next guard clause not followed by ' \
-     'empty line when guard clause is after heredoc ' \
-     'including string interpolation' do
+     'empty line when guard clause is after heredoc including string interpolation' do
     expect_offense(<<~'RUBY')
       raise(<<-FAIL) unless true
         #{1 + 1}
@@ -482,7 +483,7 @@ RSpec.describe RuboCop::Cop::Layout::EmptyLineAfterGuardClause, :config do
     RUBY
   end
 
-  it 'does not register an offense and corrects when using `return` before guard condition with heredoc' do
+  it 'does not register an offense when using `return` before guard condition with heredoc' do
     expect_no_offenses(<<~RUBY)
       def foo
         return true if <<~TEXT.length > bar
@@ -494,7 +495,7 @@ RSpec.describe RuboCop::Cop::Layout::EmptyLineAfterGuardClause, :config do
     RUBY
   end
 
-  it 'does not register an offense and corrects when using `raise` before guard condition with heredoc' do
+  it 'does not register an offense when using `raise` before guard condition with heredoc' do
     expect_no_offenses(<<~RUBY)
       def foo
         raise if <<~TEXT.length > bar

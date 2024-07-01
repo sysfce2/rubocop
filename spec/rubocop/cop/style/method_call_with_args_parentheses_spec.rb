@@ -703,6 +703,12 @@ RSpec.describe RuboCop::Cop::Style::MethodCallWithArgsParentheses, :config do
       RUBY
     end
 
+    it 'accepts parenthesized method calls before constant resolution' do
+      expect_no_offenses(<<~RUBY)
+        do_something(arg)::CONST
+      RUBY
+    end
+
     it 'accepts parens in single-line inheritance' do
       expect_no_offenses(<<-RUBY)
         class Point < Struct.new(:x, :y); end
@@ -841,16 +847,16 @@ RSpec.describe RuboCop::Cop::Style::MethodCallWithArgsParentheses, :config do
       expect_no_offenses('yield path, File.basepath(path)')
     end
 
+    it 'accepts parens in super calls with braced blocks' do
+      expect_no_offenses('super(foo(bar)) { yield }')
+    end
+
     it 'accepts parens in super without args' do
       expect_no_offenses('super()')
     end
 
     it 'accepts parens in super method calls as arguments' do
       expect_no_offenses('super foo(bar)')
-    end
-
-    it 'accepts parens in super calls with braced blocks' do
-      expect_no_offenses('super(foo(bar)) { yield }')
     end
 
     it 'accepts parens in camel case method without args' do
@@ -996,7 +1002,7 @@ RSpec.describe RuboCop::Cop::Style::MethodCallWithArgsParentheses, :config do
         }
       end
 
-      it 'register offense for single-line chaining without previous parens' do
+      it 'registers offense for single-line chaining without previous parens' do
         expect_offense(<<~RUBY)
           Rails.convoluted.example.logger.error("something")
                                                ^^^^^^^^^^^^^ Omit parentheses for method calls with arguments.
@@ -1007,7 +1013,7 @@ RSpec.describe RuboCop::Cop::Style::MethodCallWithArgsParentheses, :config do
         RUBY
       end
 
-      it 'register offense for multi-line chaining without previous parens' do
+      it 'registers offense for multi-line chaining without previous parens' do
         expect_offense(<<~RUBY)
           Rails
             .convoluted

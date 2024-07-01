@@ -409,13 +409,7 @@ RSpec.describe RuboCop::Cop::Style::TernaryParentheses, :config do
       end
     end
 
-    # In Ruby 3.0, `match-pattern-p` node represents one line pattern matching.
-    #
-    # $ ruby-parse --30 -e 'foo in bar'
-    # (match-pattern-p (send nil :foo) (match-var :bar))
-    #
-    # FIXME: https://github.com/ruby/prism/pull/2525
-    context 'with one line pattern matching', :ruby30, broken_on: :prism do
+    context 'with one line pattern matching', :ruby30 do
       it 'does not register an offense' do
         expect_no_offenses(<<~RUBY)
           (foo in bar) ? a : b
